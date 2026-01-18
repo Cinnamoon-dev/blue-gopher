@@ -25,6 +25,7 @@ func main() {
 		case http.MethodGet: // List all users
 			userHandler.GetAllUsers(w, r)
 		case http.MethodPost: // Create an user
+			userHandler.CreateUser(w, r)
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
