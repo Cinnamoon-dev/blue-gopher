@@ -19,12 +19,17 @@ type UserResponse struct {
 	Idade int    `json:"idade"`
 }
 
+type UserRequest struct {
+	Nome  string `json:"nome"`
+	Idade int    `json:"idade"`
+}
+
 func NewUserHandler(db *sql.DB) *UserHandler {
 	return &UserHandler{db: db}
 }
 
 func respondJSON(w http.ResponseWriter, status int, payload any) {
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 
 	if payload != nil {
@@ -32,6 +37,8 @@ func respondJSON(w http.ResponseWriter, status int, payload any) {
 	}
 }
 
+// The idea is simple: each handler is going to have its own parseID
+// So each handler can parse the URL the way they want
 func parseID(path string) (int, error) {
 	// path = /user/{id}
 	parts := strings.Split(path, "/")
@@ -63,7 +70,7 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"data": data})
+	json.NewEncoder(w).Encode(data)
 }
 
 func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +89,24 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, user)
+}
+
+func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	var newUser UserRequest
+	json.NewDecoder(r.Body).Decode(&newUser)
+
+	var tmp any
+	row := h.db.QueryRow("SELECT nome FROM usuarios WHERE nome = ?", newUser.Nome)
+	if err := row.Scan(&tmp); err == nil {
+		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", newUser.Nome)})
+		return
+	}
+
+	_, err := h.db.Exec("INSERT INTO usuarios(nome, idade) VALUES (?, ?)", newUser.Nome, newUser.Idade)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, newUser)
 }
