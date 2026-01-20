@@ -64,7 +64,11 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	var userResponse UserResponse
 
 	for rows.Next() {
-		rows.Scan(&userResponse.ID, &userResponse.Nome, &userResponse.Idade)
+		err := rows.Scan(&userResponse.ID, &userResponse.Nome, &userResponse.Idade)
+		if err != nil {
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
+			return
+		}
 		data = append(data, userResponse)
 	}
 
