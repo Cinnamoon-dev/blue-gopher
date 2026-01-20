@@ -102,6 +102,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	newUser.Nome = strings.TrimSpace(newUser.Nome)
+
 	_, err := h.db.Exec("INSERT INTO usuarios(nome, idade) VALUES (?, ?)", newUser.Nome, newUser.Idade)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, err.Error())
@@ -109,4 +111,65 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, newUser)
+}
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r.URL.Path)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		return
+	}
+
+	var fields UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		return
+	}
+	fmt.Printf("%+v\n\n", fields)
+
+	var user UserResponse
+	row := h.db.QueryRow("SELECT id, nome, idade FROM usuarios WHERE id = ?", id)
+	if err := row.Scan(&user.ID, &user.Nome, &user.Idade); err != nil {
+		respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
+		return
+	}
+
+	if fields.Nome == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'nome' is required"})
+		return
+	}
+
+	if fields.Idade < 1 {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'idade' should be greater than 0"})
+		return
+	}
+
+	var tmp any
+	row = h.db.QueryRow("SELECT nome FROM usuarios WHERE nome = ? AND id != ?", fields.Nome, id)
+	if err := row.Scan(&tmp); err == nil {
+		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", fields.Nome)})
+		return
+	}
+
+	if _, err := h.db.Exec("UPDATE usuarios SET nome = ?, idade = ? WHERE id = ?", fields.Nome, fields.Idade, id); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, fields)
+}
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r.URL.Path)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		return
+	}
+
+	if _, err := h.db.Exec("DELETE FROM usuarios WHERE id = ?", id); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("User %d deleted successfully", id)})
 }
