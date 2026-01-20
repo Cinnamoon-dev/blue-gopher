@@ -37,7 +37,9 @@ func main() {
 		case http.MethodGet: // Get one user with id
 			userHandler.GetOneUser(w, r)
 		case http.MethodPut: // Edit one user with id
+			userHandler.UpdateUser(w, r)
 		case http.MethodDelete: // Delete one user with id
+			userHandler.DeleteUser(w, r)
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
