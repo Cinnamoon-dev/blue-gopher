@@ -1,22 +1,17 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/Cinnamoon-dev/blue-gopher/repositories"
 )
 
 type UserHandler struct {
-	db *sql.DB
-}
-
-type UserResponse struct {
-	ID    int    `json:"id"`
-	Nome  string `json:"nome"`
-	Idade int    `json:"idade"`
+	Repo repositories.UserRepository
 }
 
 type UserRequest struct {
@@ -24,8 +19,8 @@ type UserRequest struct {
 	Idade int    `json:"idade"`
 }
 
-func NewUserHandler(db *sql.DB) *UserHandler {
-	return &UserHandler{db: db}
+func NewUserHandler(Repo repositories.UserRepository) *UserHandler {
+	return &UserHandler{Repo: Repo}
 }
 
 func respondJSON(w http.ResponseWriter, status int, payload any) {
@@ -51,30 +46,18 @@ func parseID(path string) (int, error) {
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.db.Query("SELECT id, nome, idade FROM usuarios;")
+	users, err := h.Repo.GetAll()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		switch err.Error() {
+		case "Database error":
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		default:
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		}
 		return
 	}
-	defer rows.Close()
 
-	var data []UserResponse
-	var userResponse UserResponse
-
-	for rows.Next() {
-		err := rows.Scan(&userResponse.ID, &userResponse.Nome, &userResponse.Idade)
-		if err != nil {
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
-			return
-		}
-		data = append(data, userResponse)
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	respondJSON(w, http.StatusOK, users)
 }
 
 func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
@@ -84,11 +67,16 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user UserResponse
-
-	row := h.db.QueryRow("SELECT id, nome, idade FROM usuarios WHERE id = ?", id)
-	if err := row.Scan(&user.ID, &user.Nome, &user.Idade); err != nil {
-		respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
+	user, err := h.Repo.Get(id)
+	if err != nil {
+		switch err.Error() {
+		case "Not found":
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
+		case "Database error":
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
+		default:
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		}
 		return
 	}
 
@@ -96,25 +84,24 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var newUser UserRequest
+	var newUser repositories.User
 	json.NewDecoder(r.Body).Decode(&newUser)
 
-	var tmp any
-	row := h.db.QueryRow("SELECT nome FROM usuarios WHERE nome = ?", newUser.Nome)
-	if err := row.Scan(&tmp); err == nil {
+	_, err := h.Repo.GetByName(newUser.Nome)
+	if err == nil {
 		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", newUser.Nome)})
 		return
 	}
 
 	newUser.Nome = strings.TrimSpace(newUser.Nome)
 
-	_, err := h.db.Exec("INSERT INTO usuarios(nome, idade) VALUES (?, ?)", newUser.Nome, newUser.Idade)
+	id, err := h.Repo.Create(newUser)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, newUser)
+	respondJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("User %d created successfully", id)})
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -124,16 +111,14 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var fields UserRequest
+	var fields repositories.User
 	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 	fmt.Printf("%+v\n\n", fields)
 
-	var user UserResponse
-	row := h.db.QueryRow("SELECT id, nome, idade FROM usuarios WHERE id = ?", id)
-	if err := row.Scan(&user.ID, &user.Nome, &user.Idade); err != nil {
+	if _, err := h.Repo.Get(id); err != nil {
 		respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
 		return
 	}
@@ -148,14 +133,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tmp any
-	row = h.db.QueryRow("SELECT nome FROM usuarios WHERE nome = ? AND id != ?", fields.Nome, id)
-	if err := row.Scan(&tmp); err == nil {
-		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", fields.Nome)})
-		return
-	}
-
-	if _, err := h.db.Exec("UPDATE usuarios SET nome = ?, idade = ? WHERE id = ?", fields.Nome, fields.Idade, id); err != nil {
+	if err := h.Repo.Update(id, fields); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
@@ -170,8 +148,13 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.db.Exec("DELETE FROM usuarios WHERE id = ?", id); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
+	if err := h.Repo.Delete(id); err != nil {
+		switch err.Error() {
+		case "Database error":
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		default:
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		}
 		return
 	}
 
