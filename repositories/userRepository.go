@@ -59,7 +59,7 @@ func (r *UserRepository) Get(id int) (*User, error) {
 
 func (r *UserRepository) GetByName(name string) (*User, error) {
 	var user User
-	row := r.db.QueryRow("SELECT nome FROM usuarios WHERE nome = ?", name)
+	row := r.db.QueryRow("SELECT id, nome, idade FROM usuarios WHERE nome = ?", name)
 	if err := row.Scan(&user.ID, &user.Nome, &user.Idade); err != nil {
 		return nil, &errors.HTTPError{Status: http.StatusNotFound, Message: "Not found"}
 	}
