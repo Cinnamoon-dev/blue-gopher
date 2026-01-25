@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Cinnamoon-dev/blue-gopher/handlers"
+	"github.com/Cinnamoon-dev/blue-gopher/middleware"
 	"github.com/Cinnamoon-dev/blue-gopher/repositories"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -22,7 +23,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userRepository)
 
 	// Expected URL: /user
-	mux.Handle("/user", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/user", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet: // List all users
 			userHandler.GetAllUsers(w, r)
@@ -31,10 +32,10 @@ func main() {
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
-	}))
+	})))
 
 	// Expected URL: /user/{id}
-	mux.Handle("/user/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/user/", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method { // URL: /user/{id}
 		case http.MethodGet: // Get one user with id
 			userHandler.GetOneUser(w, r)
@@ -45,7 +46,7 @@ func main() {
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
-	}))
+	})))
 
 	log.Fatal(http.ListenAndServe(":3001", mux))
 }
