@@ -21,9 +21,6 @@ func NewUserRepository(db *sql.DB) UserRepository {
 	return UserRepository{db: db}
 }
 
-// TODO
-// Create custom errors to return a message and a http status code
-
 func (r *UserRepository) GetAll() ([]User, error) {
 	rows, err := r.db.Query("SELECT id, nome, idade FROM usuarios;")
 	if err != nil {
