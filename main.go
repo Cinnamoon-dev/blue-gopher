@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -55,6 +54,6 @@ func main() {
 		}
 	})))
 
-	fmt.Printf("Listening on port %s\n", PORT)
+	log.Printf("Listening on port %s\n", PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, mux))
 }
