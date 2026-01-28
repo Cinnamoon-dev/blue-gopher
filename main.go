@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Cinnamoon-dev/blue-gopher/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/middleware"
@@ -18,6 +20,11 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
+	PORT, unset := os.LookupEnv("PORT")
+	if unset == false {
+		PORT = "3001"
+	}
 
 	userRepository := repositories.NewUserRepository(db)
 	userHandler := handlers.NewUserHandler(userRepository)
@@ -48,5 +55,6 @@ func main() {
 		}
 	})))
 
-	log.Fatal(http.ListenAndServe(":3001", mux))
+	fmt.Printf("Listening on port %s\n", PORT)
+	log.Fatal(http.ListenAndServe(":"+PORT, mux))
 }
