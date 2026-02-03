@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Cinnamoon-dev/blue-gopher/database"
 	"github.com/Cinnamoon-dev/blue-gopher/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/middleware"
 	"github.com/Cinnamoon-dev/blue-gopher/repositories"
@@ -20,13 +21,12 @@ func main() {
 	}
 	defer db.Close()
 
-	PORT, unset := os.LookupEnv("PORT")
-	if unset == false {
-		PORT = "3001"
-	}
+	database.CreateTables("./database/tables.sql", db)
+	database.Populate("./database/rules.sql", db)
 
 	userRepository := repositories.NewUserRepository(db)
 	userHandler := handlers.NewUserHandler(userRepository)
+	authHandler := handlers.NewAuthHandler(userRepository)
 
 	// Expected URL: /user
 	mux.Handle("/user", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +41,7 @@ func main() {
 	})))
 
 	// Expected URL: /user/{id}
-	mux.Handle("/user/", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/user/", middleware.Logging(middleware.Auth("user", userRepository, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method { // URL: /user/{id}
 		case http.MethodGet: // Get one user with id
 			userHandler.GetOneUser(w, r)
@@ -52,7 +52,21 @@ func main() {
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
+	}))))
+
+	mux.Handle("/auth", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			authHandler.Login(w, r)
+		default:
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
 	})))
+
+	PORT, unset := os.LookupEnv("PORT")
+	if unset == false {
+		PORT = "3001"
+	}
 
 	log.Printf("Listening on port %s\n", PORT)
 	log.Fatal(http.ListenAndServe(":"+PORT, mux))
