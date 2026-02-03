@@ -87,13 +87,13 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var newUser repositories.User
 	json.NewDecoder(r.Body).Decode(&newUser)
 
-	_, err := h.Repo.GetByName(newUser.Nome)
+	_, err := h.Repo.GetByEmail(newUser.Email)
 	if err == nil {
-		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", newUser.Nome)})
+		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", newUser.Email)})
 		return
 	}
 
-	newUser.Nome = strings.TrimSpace(newUser.Nome)
+	newUser.Email = strings.TrimSpace(newUser.Email)
 
 	id, err := h.Repo.Create(newUser)
 	if err != nil {
@@ -123,13 +123,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if fields.Nome == "" {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'nome' is required"})
+	if fields.Email == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'email' is required"})
 		return
 	}
 
-	if fields.Idade < 1 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'idade' should be greater than 0"})
+	if fields.Password == "" {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'password' is required"})
 		return
 	}
 
