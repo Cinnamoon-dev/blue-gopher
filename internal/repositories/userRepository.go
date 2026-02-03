@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/Cinnamoon-dev/blue-gopher/errors"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/errors"
 )
 
 type UserRepository struct {
@@ -12,10 +12,10 @@ type UserRepository struct {
 }
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	RoleID   int    `json:"role_id"`
+	ID       int
+	Email    string
+	Password string
+	RoleID   int
 }
 
 func NewUserRepository(db *sql.DB) UserRepository {

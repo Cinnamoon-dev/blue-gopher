@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Cinnamoon-dev/blue-gopher/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 )
 
 type UserHandler struct {

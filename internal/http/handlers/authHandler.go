@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Cinnamoon-dev/blue-gopher/middleware"
-	"github.com/Cinnamoon-dev/blue-gopher/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/middleware"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/golang-jwt/jwt/v5"
 )
 

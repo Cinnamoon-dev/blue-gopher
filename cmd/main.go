@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Cinnamoon-dev/blue-gopher/database"
-	"github.com/Cinnamoon-dev/blue-gopher/handlers"
-	"github.com/Cinnamoon-dev/blue-gopher/middleware"
-	"github.com/Cinnamoon-dev/blue-gopher/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/database"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/middleware"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -21,8 +21,8 @@ func main() {
 	}
 	defer db.Close()
 
-	database.CreateTables("./database/tables.sql", db)
-	database.Populate("./database/rules.sql", db)
+	database.CreateTables("../internal/database/tables.sql", db)
+	database.Populate("../internal/database/rules.sql", db)
 
 	userRepository := repositories.NewUserRepository(db)
 	userHandler := handlers.NewUserHandler(userRepository)
