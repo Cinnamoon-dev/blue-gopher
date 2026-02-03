@@ -15,8 +15,9 @@ type UserHandler struct {
 }
 
 type UserRequest struct {
-	Nome  string `json:"nome"`
-	Idade int    `json:"idade"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	RoleID   int    `json:"role_id"`
 }
 
 func NewUserHandler(Repo repositories.UserRepository) *UserHandler {
@@ -84,7 +85,7 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var newUser repositories.User
+	var newUser UserRequest
 	json.NewDecoder(r.Body).Decode(&newUser)
 
 	_, err := h.Repo.GetByEmail(newUser.Email)
@@ -95,7 +96,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	newUser.Email = strings.TrimSpace(newUser.Email)
 
-	id, err := h.Repo.Create(newUser)
+	user := repositories.User{
+		ID:       0,
+		Email:    newUser.Email,
+		Password: newUser.Password,
+		RoleID:   newUser.RoleID,
+	}
+
+	id, err := h.Repo.Create(user)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, err.Error())
 		return
@@ -111,7 +119,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var fields repositories.User
+	var fields UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 		return
@@ -133,7 +141,14 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.Update(id, fields); err != nil {
+	user := repositories.User{
+		ID:       0,
+		Email:    fields.Email,
+		Password: fields.Password,
+		RoleID:   fields.RoleID,
+	}
+
+	if err := h.Repo.Update(id, user); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
