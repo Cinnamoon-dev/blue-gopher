@@ -36,7 +36,7 @@ func (s *UserService) Create(newUser domain.User) (int64, error) {
 	}
 
 	_, err = s.RoleRepo.Get(newUser.RoleID)
-	if err == nil {
+	if err != nil {
 		return 0, &errors.HTTPError{Status: 422, Message: fmt.Sprintf("Role with id %d does not exists", newUser.RoleID)}
 	}
 
