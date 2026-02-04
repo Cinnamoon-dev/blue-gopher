@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -59,12 +59,8 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 			return
 		}
 
-		key := os.Getenv("SECRET_KEY")
-		if key == "" {
-			key = "d0699dddcf3e6896ff556dc156a6d65931a855b327822dc12ea5f67350125a45"
-		}
-
-		claims, err := DecodeToken(token, jwt.SigningMethodHS256, []byte(key))
+		env := config.NewEnv()
+		claims, err := DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Header().Set("Content-Type", "application/json")
@@ -81,14 +77,14 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 			return
 		}
 
-		treco := map[string]string{
+		action := map[string]string{
 			"all":    "GET",
 			"add":    "POST",
 			"edit":   "PUT",
 			"delete": "DELETE",
 		}
 
-		perms, err := repo.GetPermission(user.ID, treco[r.Method], controller)
+		perms, err := repo.GetPermission(user.ID, action[r.Method], controller)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Header().Set("Content-Type", "application/json")

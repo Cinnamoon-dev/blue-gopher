@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/database"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/routers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
+	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -21,6 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	env := config.NewEnv()
 
 	database.CreateTables("../internal/database/tables.sql", db)
 	database.Populate("../internal/database/rules.sql", db)
@@ -38,11 +39,6 @@ func main() {
 
 	mux.Handle("/auth", authRouter.BaseRoutes())
 
-	PORT, unset := os.LookupEnv("PORT")
-	if unset == false {
-		PORT = "3001"
-	}
-
-	log.Printf("Listening on port %s\n", PORT)
-	log.Fatal(http.ListenAndServe(":"+PORT, mux))
+	log.Printf("Listening on port %s\n", env.Port)
+	log.Fatal(http.ListenAndServe(":"+env.Port, mux))
 }

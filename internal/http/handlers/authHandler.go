@@ -3,12 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/middleware"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -51,25 +51,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO
+	// TODO:
 	// Password hash
 	if user.Password != request.Password {
 		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Wrong Password"})
 		return
 	}
 
-	key := os.Getenv("SECRET_KEY")
-	if key == "" {
-		key = "d0699dddcf3e6896ff556dc156a6d65931a855b327822dc12ea5f67350125a45"
-	}
-
+	env := config.NewEnv()
 	accessToken, err := middleware.CreateToken(
 		jwt.MapClaims{
 			"sub": user.ID,
 			"exp": time.Now().Add(20 * time.Minute),
 		},
 		jwt.SigningMethodHS256,
-		[]byte(key),
+		[]byte(env.JwtKey),
 	)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -82,7 +78,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			"exp": time.Now().Add(7 * 24 * time.Hour),
 		},
 		jwt.SigningMethodHS256,
-		[]byte(key),
+		[]byte(env.JwtKey),
 	)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -93,4 +89,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 	})
+}
+
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	// Pegar o token nos headers
+	// Decodificar
+	// Pegar o id para encontrar o user no banco
+	// Retornar ele
+	token := r.Header.Get("Bearer")
+	if token == "" {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+	}
 }
