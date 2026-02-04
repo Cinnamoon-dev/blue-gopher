@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/Cinnamoon-dev/blue-gopher/internal/middleware"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -59,7 +60,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	env := config.NewEnv()
-	accessToken, err := middleware.CreateToken(
+	authService := services.NewAuthService()
+	accessToken, err := authService.CreateToken(
 		jwt.MapClaims{
 			"sub": user.ID,
 			"exp": time.Now().Add(20 * time.Minute),
@@ -72,7 +74,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, err := middleware.CreateToken(
+	refreshToken, err := authService.CreateToken(
 		jwt.MapClaims{
 			"sub": user.ID,
 			"exp": time.Now().Add(7 * 24 * time.Hour),
@@ -92,12 +94,28 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
-	// Pegar o token nos headers
-	// Decodificar
-	// Pegar o id para encontrar o user no banco
-	// Retornar ele
+	authService := services.NewAuthService()
 	token := r.Header.Get("Bearer")
-	if token == "" {
-		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Unauthorized"})
+	env := config.NewEnv()
+
+	claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		return
 	}
+
+	id := claims.Sub
+	user, err := h.Repo.Get(id)
+	if err != nil {
+		switch err.Error() {
+		case "Not found":
+			respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
+		case "Database error":
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
+		default:
+			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		}
+	}
+
+	respondJSON(w, http.StatusOK, user)
 }
