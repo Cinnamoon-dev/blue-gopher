@@ -8,8 +8,9 @@ import (
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/database"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
-	"github.com/Cinnamoon-dev/blue-gopher/internal/middleware"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/http/routers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,43 +26,17 @@ func main() {
 	database.Populate("../internal/database/rules.sql", db)
 
 	userRepository := repositories.NewUserRepository(db)
-	userHandler := handlers.NewUserHandler(userRepository)
+	userService := services.NewUserService(userRepository)
+	userHandler := handlers.NewUserHandler(userService)
+	userRouter := routers.NewUserRouter(userHandler)
+
 	authHandler := handlers.NewAuthHandler(userRepository)
+	authRouter := routers.NewAuthRouter(authHandler)
 
-	// Expected URL: /user
-	mux.Handle("/user", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet: // List all users
-			userHandler.GetAllUsers(w, r)
-		case http.MethodPost: // Create an user
-			userHandler.CreateUser(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})))
+	mux.Handle("/user", userRouter.BaseRoutes())
+	mux.Handle("/user/", userRouter.IDRoutes())
 
-	// Expected URL: /user/{id}
-	mux.Handle("/user/", middleware.Logging(middleware.Auth("user", userRepository, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method { // URL: /user/{id}
-		case http.MethodGet: // Get one user with id
-			userHandler.GetOneUser(w, r)
-		case http.MethodPut: // Edit one user with id
-			userHandler.UpdateUser(w, r)
-		case http.MethodDelete: // Delete one user with id
-			userHandler.DeleteUser(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	}))))
-
-	mux.Handle("/auth", middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			authHandler.Login(w, r)
-		default:
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})))
+	mux.Handle("/auth", authRouter.BaseRoutes())
 
 	PORT, unset := os.LookupEnv("PORT")
 	if unset == false {
