@@ -8,10 +8,10 @@ import (
 )
 
 type User struct {
-	ID       int
+	ID       int64
 	Email    string
 	Password string
-	RoleID   int
+	RoleID   int64
 }
 
 func (u *User) ValidateEmail() error {

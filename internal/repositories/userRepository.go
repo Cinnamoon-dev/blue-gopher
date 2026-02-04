@@ -16,7 +16,7 @@ func NewUserRepository(db *sql.DB) UserRepository {
 	return UserRepository{db: db}
 }
 
-func (r *UserRepository) GetPermission(id int, action string, controller string) (bool, error) {
+func (r *UserRepository) GetPermission(id int64, action string, controller string) (bool, error) {
 	rows, err := r.db.Query(`
 		SELECT usuarios.id as u_id, rules.action as action, rules.permission as permission, controllers.name as controller
 		FROM usuarios

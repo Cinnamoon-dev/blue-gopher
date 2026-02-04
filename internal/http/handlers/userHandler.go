@@ -18,7 +18,7 @@ type UserHandler struct {
 type UserRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	RoleID   int    `json:"role_id"`
+	RoleID   int64  `json:"role_id"`
 }
 
 func NewUserHandler(svc services.UserService) UserHandler {
