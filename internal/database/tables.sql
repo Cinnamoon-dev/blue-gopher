@@ -1,0 +1,28 @@
+-- SQLite Tables
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role_id INTEGER NOT NULL
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS controllers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+) STRICT;
+
+CREATE TABLE IF NOT EXISTS rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    action TEXT NOT NULL, -- Boolean
+    permission INTEGER NOT NULL, -- Boolean
+    role_id INTEGER NOT NULL,
+    controller_id INTEGER NOT NULL,
+
+    FOREIGN KEY(role_id) REFERENCES roles(id),
+    FOREIGN KEY(controller_id) REFERENCES controllers(id)
+) STRICT;

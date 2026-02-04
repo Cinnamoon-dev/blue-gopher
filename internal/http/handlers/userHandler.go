@@ -7,20 +7,22 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Cinnamoon-dev/blue-gopher/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 )
 
 type UserHandler struct {
-	Repo repositories.UserRepository
+	Svc services.UserService
 }
 
 type UserRequest struct {
-	Nome  string `json:"nome"`
-	Idade int    `json:"idade"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	RoleID   int64  `json:"role_id"`
 }
 
-func NewUserHandler(Repo repositories.UserRepository) *UserHandler {
-	return &UserHandler{Repo: Repo}
+func NewUserHandler(svc services.UserService) UserHandler {
+	return UserHandler{Svc: svc}
 }
 
 func respondJSON(w http.ResponseWriter, status int, payload any) {
@@ -46,7 +48,7 @@ func parseID(path string) (int, error) {
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.Repo.GetAll()
+	users, err := h.Svc.GetAll()
 	if err != nil {
 		switch err.Error() {
 		case "Database error":
@@ -67,7 +69,7 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.Repo.Get(id)
+	user, err := h.Svc.Get(id)
 	if err != nil {
 		switch err.Error() {
 		case "Not found":
@@ -84,18 +86,28 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var newUser repositories.User
+	var newUser UserRequest
 	json.NewDecoder(r.Body).Decode(&newUser)
+	newUser.Email = strings.TrimSpace(newUser.Email)
 
-	_, err := h.Repo.GetByName(newUser.Nome)
-	if err == nil {
-		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": fmt.Sprintf("User with name %s already exists", newUser.Nome)})
+	user := domain.User{
+		ID:       0,
+		Email:    newUser.Email,
+		Password: newUser.Password,
+		RoleID:   newUser.RoleID,
+	}
+
+	if err := user.ValidateEmail(); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	newUser.Nome = strings.TrimSpace(newUser.Nome)
+	if err := user.ValidatePassword(); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
 
-	id, err := h.Repo.Create(newUser)
+	id, err := h.Svc.Create(user)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, err.Error())
 		return
@@ -111,29 +123,30 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var fields repositories.User
+	var fields UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
 		return
 	}
-	fmt.Printf("%+v\n\n", fields)
 
-	if _, err := h.Repo.Get(id); err != nil {
-		respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
+	user := domain.User{
+		ID:       0,
+		Email:    fields.Email,
+		Password: fields.Password,
+		RoleID:   fields.RoleID,
+	}
+
+	if err := user.ValidateEmail(); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	if fields.Nome == "" {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'nome' is required"})
+	if err := user.ValidatePassword(); err != nil {
+		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	if fields.Idade < 1 {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Field 'idade' should be greater than 0"})
-		return
-	}
-
-	if err := h.Repo.Update(id, fields); err != nil {
+	if err := h.Svc.Update(id, user); err != nil {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
@@ -148,7 +161,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Repo.Delete(id); err != nil {
+	if err := h.Svc.Delete(id); err != nil {
 		switch err.Error() {
 		case "Database error":
 			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
