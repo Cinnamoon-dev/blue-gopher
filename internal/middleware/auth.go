@@ -2,52 +2,13 @@ package middleware
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-type Claims struct {
-	Sub int       `json:"sub"`
-	Exp time.Time `json:"exp"`
-	jwt.RegisteredClaims
-}
-
-func CreateToken(claims jwt.Claims, method jwt.SigningMethod, key []byte) (string, error) {
-	token := jwt.NewWithClaims(method, claims)
-	tokenString, err := token.SignedString(key)
-
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
-func DecodeToken(tokenString string, method jwt.SigningMethod, key []byte) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
-		if token.Method.Alg() != method.Alg() {
-			return nil, fmt.Errorf("Invalid algorithm: %s", token.Method.Alg())
-		}
-
-		return key, nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if claims, ok := token.Claims.(*Claims); ok {
-		return claims, nil
-	}
-
-	return nil, errors.New("unknown claims type, cannot proceed")
-}
 
 func Auth(controller string, repo repositories.UserRepository, next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,8 +20,9 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 			return
 		}
 
+		authService := services.NewAuthService()
 		env := config.NewEnv()
-		claims, err := DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
+		claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Header().Set("Content-Type", "application/json")
