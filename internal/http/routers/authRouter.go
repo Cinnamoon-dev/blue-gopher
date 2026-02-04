@@ -22,7 +22,7 @@ func (ro *AuthRouter) BaseRoutes() http.HandlerFunc {
 		case http.MethodPost:
 			ro.AuthHandler.Login(w, r)
 		case http.MethodGet:
-			// TODO: get current user
+			ro.AuthHandler.Me(w, r)
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
