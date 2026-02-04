@@ -31,7 +31,7 @@ func (ro *UserRouter) BaseRoutes() http.HandlerFunc {
 
 // Expected URL: /user/{id}
 func (ro *UserRouter) IDRoutes() http.HandlerFunc {
-	return middleware.Logging(middleware.Auth("user", ro.UserHandler.Svc.Repo, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return middleware.Logging(middleware.Auth("user", ro.UserHandler.Svc.UserRepo, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet: // Get one user with id
 			ro.UserHandler.GetOneUser(w, r)
