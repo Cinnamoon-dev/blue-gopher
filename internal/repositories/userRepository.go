@@ -4,25 +4,19 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/Cinnamoon-dev/blue-gopher/errors"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/errors"
 )
 
 type UserRepository struct {
 	db *sql.DB
 }
 
-type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	RoleID   int    `json:"role_id"`
-}
-
 func NewUserRepository(db *sql.DB) UserRepository {
 	return UserRepository{db: db}
 }
 
-func (r *UserRepository) GetPermission(id int, action string, controller string) (bool, error) {
+func (r *UserRepository) GetPermission(id int64, action string, controller string) (bool, error) {
 	rows, err := r.db.Query(`
 		SELECT usuarios.id as u_id, rules.action as action, rules.permission as permission, controllers.name as controller
 		FROM usuarios
@@ -64,15 +58,15 @@ func (r *UserRepository) GetPermission(id int, action string, controller string)
 	return true, nil
 }
 
-func (r *UserRepository) GetAll() ([]User, error) {
+func (r *UserRepository) GetAll() ([]domain.User, error) {
 	rows, err := r.db.Query("SELECT id, email, password, role_id FROM usuarios ORDER BY id;")
 	if err != nil {
 		return nil, &errors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
 	}
 	defer rows.Close()
 
-	var data []User
-	var user User
+	var data []domain.User
+	var user domain.User
 
 	for rows.Next() {
 		err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID)
@@ -86,8 +80,8 @@ func (r *UserRepository) GetAll() ([]User, error) {
 	return data, nil
 }
 
-func (r *UserRepository) Get(id int) (*User, error) {
-	var user User
+func (r *UserRepository) Get(id int) (*domain.User, error) {
+	var user domain.User
 
 	row := r.db.QueryRow("SELECT id, email, password, role_id FROM usuarios WHERE id = ? ORDER BY id", id)
 	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID); err != nil {
@@ -97,8 +91,8 @@ func (r *UserRepository) Get(id int) (*User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) GetByEmail(name string) (*User, error) {
-	var user User
+func (r *UserRepository) GetByEmail(name string) (*domain.User, error) {
+	var user domain.User
 	row := r.db.QueryRow("SELECT id, email, password, role_id FROM usuarios WHERE email = ? ORDER BY id LIMIT 1", name)
 	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID); err != nil {
 		return nil, &errors.HTTPError{Status: http.StatusNotFound, Message: "Not found"}
@@ -107,7 +101,7 @@ func (r *UserRepository) GetByEmail(name string) (*User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) Create(user User) (int64, error) {
+func (r *UserRepository) Create(user domain.User) (int64, error) {
 	result, err := r.db.Exec("INSERT INTO usuarios(email, password, role_id) VALUES (?, ?, ?)", user.Email, user.Password, user.RoleID)
 	if err != nil {
 		return 0, &errors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
@@ -121,7 +115,7 @@ func (r *UserRepository) Create(user User) (int64, error) {
 	return id, nil
 }
 
-func (r *UserRepository) Update(id int, user User) error {
+func (r *UserRepository) Update(id int, user domain.User) error {
 	_, err := r.db.Exec("UPDATE usuarios SET email = ?, password = ?, role_id = ? WHERE id = ?", user.Email, user.Password, user.RoleID, id)
 	if err != nil {
 		return &errors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
