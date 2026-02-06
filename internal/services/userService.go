@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 
+	"github.com/Cinnamoon-dev/blue-gopher/internal/customerrors"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
-	"github.com/Cinnamoon-dev/blue-gopher/internal/errors"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 )
 
@@ -32,12 +32,12 @@ func (s *UserService) GetByEmail(email string) (*domain.User, error) {
 func (s *UserService) Create(newUser domain.User) (int64, error) {
 	_, err := s.UserRepo.GetByEmail(newUser.Email)
 	if err == nil {
-		return 0, &errors.HTTPError{Status: 422, Message: fmt.Sprintf("Email %s already in use", newUser.Email)}
+		return 0, &customerrors.HTTPError{Status: 422, Message: fmt.Sprintf("Email %s already in use", newUser.Email)}
 	}
 
 	_, err = s.RoleRepo.Get(newUser.RoleID)
 	if err != nil {
-		return 0, &errors.HTTPError{Status: 422, Message: fmt.Sprintf("Role with id %d does not exists", newUser.RoleID)}
+		return 0, &customerrors.HTTPError{Status: 422, Message: fmt.Sprintf("Role with id %d does not exists", newUser.RoleID)}
 	}
 
 	return s.UserRepo.Create(newUser)
@@ -45,7 +45,7 @@ func (s *UserService) Create(newUser domain.User) (int64, error) {
 
 func (s *UserService) Update(id int, fields domain.User) error {
 	if _, err := s.UserRepo.Get(id); err != nil {
-		return &errors.HTTPError{Status: 404, Message: fmt.Sprintf("User %d not found", id)}
+		return &customerrors.HTTPError{Status: 404, Message: fmt.Sprintf("User %d not found", id)}
 	}
 
 	return s.UserRepo.Update(id, fields)

@@ -25,15 +25,6 @@ func NewUserHandler(svc services.UserService) UserHandler {
 	return UserHandler{Svc: svc}
 }
 
-func respondJSON(w http.ResponseWriter, status int, payload any) {
-	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
-
-	if payload != nil {
-		json.NewEncoder(w).Encode(payload)
-	}
-}
-
 // The idea is simple: each handler is going to have its own parseID
 // So each handler can parse the URL the way they want
 func parseID(path string) (int, error) {
@@ -50,39 +41,27 @@ func parseID(path string) (int, error) {
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.Svc.GetAll()
 	if err != nil {
-		switch err.Error() {
-		case "Database error":
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		default:
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
-		}
+		RespondError(w, err)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, users)
+	RespondJSON(w, http.StatusOK, users)
 }
 
 func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r.URL.Path)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		RespondError(w, err)
 		return
 	}
 
 	user, err := h.Svc.Get(id)
 	if err != nil {
-		switch err.Error() {
-		case "Not found":
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
-		case "Database error":
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
-		default:
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
-		}
+		RespondError(w, err)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, user)
+	RespondJSON(w, http.StatusOK, user)
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -98,34 +77,34 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := user.ValidateEmail(); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondError(w, err)
 		return
 	}
 
 	if err := user.ValidatePassword(); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondError(w, err)
 		return
 	}
 
 	id, err := h.Svc.Create(user)
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, err.Error())
+		RespondError(w, err)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("User %d created successfully", id)})
+	RespondJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("User %d created successfully", id)})
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r.URL.Path)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		RespondError(w, err)
 		return
 	}
 
 	var fields UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid JSON"})
+		RespondError(w, err)
 		return
 	}
 
@@ -137,39 +116,34 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := user.ValidateEmail(); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondError(w, err)
 		return
 	}
 
 	if err := user.ValidatePassword(); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondError(w, err)
 		return
 	}
 
 	if err := h.Svc.Update(id, user); err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondError(w, err)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, fields)
+	RespondJSON(w, http.StatusOK, fields)
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseID(r.URL.Path)
 	if err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid ID"})
+		RespondError(w, err)
 		return
 	}
 
 	if err := h.Svc.Delete(id); err != nil {
-		switch err.Error() {
-		case "Database error":
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		default:
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
-		}
+		RespondError(w, err)
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("User %d deleted successfully", id)})
+	RespondJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("User %d deleted successfully", id)})
 }

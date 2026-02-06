@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
@@ -14,9 +14,7 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Bearer")
 		if token == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "Not Authenticated"})
+			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Not Authenticated"})
 			return
 		}
 
@@ -24,40 +22,32 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 		env := config.NewEnv()
 		claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			handlers.RespondError(w, err)
 			return
 		}
 
 		id := claims.Sub
 		user, err := repo.Get(id)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "User not found"})
+			handlers.RespondError(w, err)
 			return
 		}
 
 		action := map[string]string{
-			"all":    "GET",
-			"add":    "POST",
-			"edit":   "PUT",
-			"delete": "DELETE",
+			"GET":    "all",
+			"POST":   "add",
+			"PUT":    "edit",
+			"DELETE": "delete",
 		}
 
 		perms, err := repo.GetPermission(user.ID, action[r.Method], controller)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			handlers.RespondError(w, err)
 			return
 		}
 
 		if perms == false {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "User does not have permission"})
+			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "User does not have permission"})
 			return
 		}
 
