@@ -2,7 +2,9 @@ package repositories
 
 import (
 	"database/sql"
+	"fmt"
 
+	"github.com/Cinnamoon-dev/blue-gopher/internal/customerrors"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
 )
 
@@ -20,7 +22,7 @@ func (r *RoleRepository) Get(id int64) (*domain.Role, error) {
 
 	err := row.Scan(&role.ID, &role.Name)
 	if err != nil {
-		return nil, err
+		return nil, &customerrors.HTTPError{Status: 404, Message: fmt.Sprintf("Role with id %d not found", id)}
 	}
 
 	return &role, nil
