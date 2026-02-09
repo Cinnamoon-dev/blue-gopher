@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
@@ -12,6 +13,7 @@ import (
 
 func Auth(controller string, repo repositories.UserRepository, next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		token := r.Header.Get("Bearer")
 		if token == "" {
 			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Not Authenticated"})
@@ -27,7 +29,7 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 		}
 
 		id := claims.Sub
-		user, err := repo.Get(id)
+		user, err := repo.Get(ctx, id)
 		if err != nil {
 			handlers.RespondError(w, err)
 			return
@@ -40,7 +42,7 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 			"DELETE": "delete",
 		}
 
-		perms, err := repo.GetPermission(user.ID, action[r.Method], controller)
+		perms, err := repo.GetPermission(ctx, user.ID, action[r.Method], controller)
 		if err != nil {
 			handlers.RespondError(w, err)
 			return
@@ -50,6 +52,9 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "User does not have permission"})
 			return
 		}
+
+		ctx = context.WithValue(r.Context(), config.UserContextKey, user)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -16,7 +17,7 @@ func NewRoleRepository(db *sql.DB) RoleRepository {
 	return RoleRepository{DB: db}
 }
 
-func (r *RoleRepository) Get(id int64) (*domain.Role, error) {
+func (r *RoleRepository) Get(ctx context.Context, id int64) (*domain.Role, error) {
 	var role domain.Role
 	row := r.DB.QueryRow("SELECT id, name FROM roles WHERE id = ?", id)
 

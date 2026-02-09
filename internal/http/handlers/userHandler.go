@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Cinnamoon-dev/blue-gopher/internal/customerrors"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 )
@@ -27,7 +28,7 @@ func NewUserHandler(svc services.UserService) UserHandler {
 
 // The idea is simple: each handler is going to have its own parseID
 // So each handler can parse the URL the way they want
-func parseID(path string) (int, error) {
+func parseID(path string) (int64, error) {
 	// path = /user/{id}
 	parts := strings.Split(path, "/")
 
@@ -35,11 +36,17 @@ func parseID(path string) (int, error) {
 		return 0, http.ErrNotSupported
 	}
 
-	return strconv.Atoi(parts[2])
+	id, err := strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		return 0, &customerrors.HTTPError{Status: http.StatusUnprocessableEntity, Message: fmt.Sprintf("Invalid id %s", parts[2])}
+	}
+
+	return id, nil
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := h.Svc.GetAll()
+	ctx := r.Context()
+	users, err := h.Svc.GetAll(ctx)
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -49,13 +56,14 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id, err := parseID(r.URL.Path)
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
 
-	user, err := h.Svc.Get(id)
+	user, err := h.Svc.Get(ctx, id)
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -65,6 +73,7 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var newUser UserRequest
 	json.NewDecoder(r.Body).Decode(&newUser)
 	newUser.Email = strings.TrimSpace(newUser.Email)
@@ -86,7 +95,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.Svc.Create(user)
+	id, err := h.Svc.Create(ctx, user)
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -96,6 +105,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id, err := parseID(r.URL.Path)
 	if err != nil {
 		RespondError(w, err)
@@ -125,7 +135,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Svc.Update(id, user); err != nil {
+	if err := h.Svc.Update(ctx, id, user); err != nil {
 		RespondError(w, err)
 		return
 	}
@@ -134,13 +144,14 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id, err := parseID(r.URL.Path)
 	if err != nil {
 		RespondError(w, err)
 		return
 	}
 
-	if err := h.Svc.Delete(id); err != nil {
+	if err := h.Svc.Delete(ctx, id); err != nil {
 		RespondError(w, err)
 		return
 	}

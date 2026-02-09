@@ -27,6 +27,7 @@ func NewAuthHandler(Repo repositories.UserRepository) AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var request LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		RespondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -46,7 +47,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.Repo.GetByEmail(request.Email)
+	user, err := h.Repo.GetByEmail(ctx, request.Email)
 	if err != nil {
 		RespondJSON(w, http.StatusNotFound, map[string]string{"error": "Email not found"})
 		return
@@ -94,6 +95,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	authService := services.NewAuthService()
 	token := r.Header.Get("Bearer")
 	env := config.NewEnv()
@@ -105,7 +107,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := claims.Sub
-	user, err := h.Repo.Get(id)
+	user, err := h.Repo.Get(ctx, id)
 	if err != nil {
 		switch err.Error() {
 		case "Not found":

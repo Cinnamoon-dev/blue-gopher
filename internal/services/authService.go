@@ -16,7 +16,7 @@ func NewAuthService() AuthService {
 }
 
 type Claims struct {
-	Sub int       `json:"sub"`
+	Sub int64     `json:"sub"`
 	Exp time.Time `json:"exp"`
 	jwt.RegisteredClaims
 }

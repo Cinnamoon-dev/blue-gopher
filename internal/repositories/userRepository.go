@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -17,7 +18,7 @@ func NewUserRepository(db *sql.DB) UserRepository {
 	return UserRepository{db: db}
 }
 
-func (r *UserRepository) GetPermission(id int64, action string, controller string) (bool, error) {
+func (r *UserRepository) GetPermission(ctx context.Context, id int64, action string, controller string) (bool, error) {
 	rows, err := r.db.Query(`
 		SELECT usuarios.id as u_id, rules.action as action, rules.permission as permission, controllers.name as controller
 		FROM usuarios
@@ -33,11 +34,11 @@ func (r *UserRepository) GetPermission(id int64, action string, controller strin
 		controller,
 	)
 	if err != nil {
-		return false, &customerrors.HTTPError{Status: 500, Message: err.Error()}
+		return false, &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: err.Error()}
 	}
 
 	var output struct {
-		UserID     int
+		UserID     int64
 		Action     string
 		Permission bool
 		Controller string
@@ -46,7 +47,7 @@ func (r *UserRepository) GetPermission(id int64, action string, controller strin
 	if rows.Next() {
 		err = rows.Scan(&output.UserID, &output.Action, &output.Permission, &output.Controller)
 		if err != nil {
-			return false, &customerrors.HTTPError{Status: 500, Message: err.Error()}
+			return false, &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: err.Error()}
 		}
 	} else {
 		return false, &customerrors.HTTPError{Message: "Rule not found", Status: http.StatusInternalServerError}
@@ -55,7 +56,7 @@ func (r *UserRepository) GetPermission(id int64, action string, controller strin
 	return output.Permission, nil
 }
 
-func (r *UserRepository) GetAll() ([]domain.User, error) {
+func (r *UserRepository) GetAll(ctx context.Context) ([]domain.User, error) {
 	rows, err := r.db.Query("SELECT id, email, password, role_id FROM usuarios ORDER BY id;")
 	if err != nil {
 		return nil, &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
@@ -77,7 +78,7 @@ func (r *UserRepository) GetAll() ([]domain.User, error) {
 	return data, nil
 }
 
-func (r *UserRepository) Get(id int) (*domain.User, error) {
+func (r *UserRepository) Get(ctx context.Context, id int64) (*domain.User, error) {
 	var user domain.User
 
 	row := r.db.QueryRow("SELECT id, email, password, role_id FROM usuarios WHERE id = ? ORDER BY id", id)
@@ -88,7 +89,7 @@ func (r *UserRepository) Get(id int) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) GetByEmail(email string) (*domain.User, error) {
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 	row := r.db.QueryRow("SELECT id, email, password, role_id FROM usuarios WHERE email = ? ORDER BY id LIMIT 1", email)
 	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID); err != nil {
@@ -98,7 +99,7 @@ func (r *UserRepository) GetByEmail(email string) (*domain.User, error) {
 	return &user, nil
 }
 
-func (r *UserRepository) Create(user domain.User) (int64, error) {
+func (r *UserRepository) Create(ctx context.Context, user domain.User) (int64, error) {
 	result, err := r.db.Exec("INSERT INTO usuarios(email, password, role_id) VALUES (?, ?, ?)", user.Email, user.Password, user.RoleID)
 	if err != nil {
 		return 0, &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
@@ -112,7 +113,7 @@ func (r *UserRepository) Create(user domain.User) (int64, error) {
 	return id, nil
 }
 
-func (r *UserRepository) Update(id int, user domain.User) error {
+func (r *UserRepository) Update(ctx context.Context, id int64, user domain.User) error {
 	_, err := r.db.Exec("UPDATE usuarios SET email = ?, password = ?, role_id = ? WHERE id = ?", user.Email, user.Password, user.RoleID, id)
 	if err != nil {
 		return &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
@@ -121,7 +122,7 @@ func (r *UserRepository) Update(id int, user domain.User) error {
 	return nil
 }
 
-func (r *UserRepository) Delete(id int) error {
+func (r *UserRepository) Delete(ctx context.Context, id int64) error {
 	_, err := r.db.Exec("DELETE FROM usuarios WHERE id = ?", id)
 	if err != nil {
 		return &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
