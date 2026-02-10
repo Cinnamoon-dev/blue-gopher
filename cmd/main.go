@@ -15,13 +15,13 @@ import (
 )
 
 func main() {
+	env := config.NewEnv()
 	mux := http.NewServeMux()
-	db, err := sql.Open("sqlite3", "./storage.db")
+	db, err := sql.Open("sqlite3", env.DbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	env := config.NewEnv()
 
 	database.CreateTables("../internal/database/tables.sql", db)
 	database.Populate("../internal/database/rules.sql", db)
