@@ -7,6 +7,7 @@ import (
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/customerrors"
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct{}
@@ -50,4 +51,18 @@ func (s *AuthService) DecodeToken(tokenString string, method jwt.SigningMethod, 
 	}
 
 	return nil, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: "unknown claims type, cannot proceed"}
+}
+
+func (s *AuthService) HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
+}
+
+func (s *AuthService) VerifyPassword(password string, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
