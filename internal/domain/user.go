@@ -37,5 +37,9 @@ func (u *User) ValidatePassword() error {
 		return errors.New("Validate password: password is too short (minimum 4 characters)")
 	}
 
+	if len(u.Password) > 72 { // bcrypt hash only uses until 72 characters
+		return errors.New("Validate password: password too long (maximum 72 characters)")
+	}
+
 	return nil
 }
