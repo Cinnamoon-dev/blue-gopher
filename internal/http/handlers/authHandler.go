@@ -53,15 +53,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO:
-	// Password hash
-	if user.Password != request.Password {
+	authService := services.NewAuthService()
+	if authService.VerifyPassword(request.Password, user.Password) {
 		RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Wrong Password"})
 		return
 	}
 
 	env := config.NewEnv()
-	authService := services.NewAuthService()
 	accessToken, err := authService.CreateToken(
 		jwt.MapClaims{
 			"sub": user.ID,
