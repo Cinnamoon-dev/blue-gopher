@@ -86,12 +86,12 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := user.ValidateEmail(); err != nil {
-		RespondError(w, err)
+		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
 		return
 	}
 
 	if err := user.ValidatePassword(); err != nil {
-		RespondError(w, err)
+		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
 		return
 	}
 
