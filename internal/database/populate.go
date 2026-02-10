@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Takes a path to a sql file and divides all the file in strings with ";" as the separator
+// Takes a path to a sql file, loads it all in memory and divides all the file in strings with ";" as the separator
 func CreateTables(path string, db *sql.DB) {
 	file, err := os.ReadFile(path)
 	if err != nil {

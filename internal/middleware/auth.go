@@ -1,9 +1,11 @@
 package middleware
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
+	"time"
 
+	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
@@ -12,11 +14,10 @@ import (
 
 func Auth(controller string, repo repositories.UserRepository, next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		token := r.Header.Get("Bearer")
 		if token == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "Not Authenticated"})
+			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Not Authenticated"})
 			return
 		}
 
@@ -24,42 +25,42 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 		env := config.NewEnv()
 		claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			handlers.RespondError(w, err)
+			return
+		}
+
+		if claims.Exp.Before(time.Now()) {
+			handlers.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Token expired"})
 			return
 		}
 
 		id := claims.Sub
-		user, err := repo.Get(id)
+		user, err := repo.Get(ctx, id)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "User not found"})
+			handlers.RespondError(w, err)
 			return
 		}
 
 		action := map[string]string{
-			"all":    "GET",
-			"add":    "POST",
-			"edit":   "PUT",
-			"delete": "DELETE",
+			"GET":    "all",
+			"POST":   "add",
+			"PUT":    "edit",
+			"DELETE": "delete",
 		}
 
-		perms, err := repo.GetPermission(user.ID, action[r.Method], controller)
+		perms, err := repo.GetPermission(ctx, user.ID, action[r.Method], controller)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			handlers.RespondError(w, err)
 			return
 		}
 
 		if perms == false {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{"error": "User does not have permission"})
+			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "User does not have permission"})
 			return
 		}
+
+		ctx = context.WithValue(r.Context(), config.UserContextKey, user)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

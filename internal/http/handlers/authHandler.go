@@ -27,9 +27,10 @@ func NewAuthHandler(Repo repositories.UserRepository) AuthHandler {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var request LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		RespondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -37,30 +38,28 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	request.Password = strings.TrimSpace(request.Password)
 
 	if request.Email == "" {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "field email is required"})
+		RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "field email is required"})
 		return
 	}
 
 	if request.Password == "" {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "field password is required"})
+		RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "field password is required"})
 		return
 	}
 
-	user, err := h.Repo.GetByEmail(request.Email)
+	user, err := h.Repo.GetByEmail(ctx, request.Email)
 	if err != nil {
-		respondJSON(w, http.StatusNotFound, map[string]string{"error": "Email not found"})
+		RespondJSON(w, http.StatusNotFound, map[string]string{"error": "Email not found"})
 		return
 	}
 
-	// TODO:
-	// Password hash
-	if user.Password != request.Password {
-		respondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Wrong Password"})
+	authService := services.NewAuthService()
+	if authService.VerifyPassword(request.Password, user.Password) {
+		RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Wrong Password"})
 		return
 	}
 
 	env := config.NewEnv()
-	authService := services.NewAuthService()
 	accessToken, err := authService.CreateToken(
 		jwt.MapClaims{
 			"sub": user.ID,
@@ -70,7 +69,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		[]byte(env.JwtKey),
 	)
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -83,39 +82,40 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		[]byte(env.JwtKey),
 	)
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
-	respondJSON(w, http.StatusOK, map[string]string{
+	RespondJSON(w, http.StatusOK, map[string]string{
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 	})
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	authService := services.NewAuthService()
 	token := r.Header.Get("Bearer")
 	env := config.NewEnv()
 
 	claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 	if err != nil {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+		RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
 		return
 	}
 
 	id := claims.Sub
-	user, err := h.Repo.Get(id)
+	user, err := h.Repo.Get(ctx, id)
 	if err != nil {
 		switch err.Error() {
 		case "Not found":
-			respondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
+			RespondJSON(w, http.StatusNotFound, map[string]string{"error": fmt.Sprintf("User %d not found", id)})
 		case "Database error":
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
+			RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Database error"})
 		default:
-			respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
+			RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
 		}
 	}
 
-	respondJSON(w, http.StatusOK, user)
+	RespondJSON(w, http.StatusOK, user)
 }
