@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/customerrors"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
@@ -39,12 +40,18 @@ func (s *UserService) GetByEmail(ctx context.Context, email string) (*domain.Use
 func (s *UserService) Create(ctx context.Context, newUser domain.User) (int64, error) {
 	_, err := s.UserRepo.GetByEmail(ctx, newUser.Email)
 	if err == nil {
-		return 0, &customerrors.HTTPError{Status: 422, Message: fmt.Sprintf("Email %s already in use", newUser.Email)}
+		return 0, &customerrors.HTTPError{Status: http.StatusUnprocessableEntity, Message: fmt.Sprintf("Email %s already in use", newUser.Email)}
 	}
 
 	_, err = s.RoleRepo.Get(ctx, newUser.RoleID)
 	if err != nil {
-		return 0, &customerrors.HTTPError{Status: 422, Message: fmt.Sprintf("Role with id %d does not exists", newUser.RoleID)}
+		return 0, &customerrors.HTTPError{Status: http.StatusUnprocessableEntity, Message: fmt.Sprintf("Role with id %d does not exists", newUser.RoleID)}
+	}
+
+	authService := NewAuthService()
+	newUser.Password, err = authService.HashPassword(newUser.Password)
+	if err != nil {
+		return 0, &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: fmt.Sprintf("Password hash: %s", err.Error())}
 	}
 
 	return s.UserRepo.Create(ctx, newUser)
@@ -52,9 +59,16 @@ func (s *UserService) Create(ctx context.Context, newUser domain.User) (int64, e
 
 func (s *UserService) Update(ctx context.Context, id int64, fields domain.User) error {
 	if _, err := s.UserRepo.Get(ctx, id); err != nil {
-		return &customerrors.HTTPError{Status: 404, Message: fmt.Sprintf("User %d not found", id)}
+		return &customerrors.HTTPError{Status: http.StatusNotFound, Message: fmt.Sprintf("User %d not found", id)}
 	}
 
+	authService := NewAuthService()
+	hashPassword, err := authService.HashPassword(fields.Password)
+	if err != nil {
+		return &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: fmt.Sprintf("Password hash: %s", err.Error())}
+	}
+
+	fields.Password = hashPassword
 	return s.UserRepo.Update(ctx, id, fields)
 }
 
