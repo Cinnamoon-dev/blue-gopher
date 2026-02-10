@@ -25,8 +25,8 @@ func (s *UserService) GetAll(ctx context.Context) ([]domain.User, error) {
 }
 
 func (s *UserService) Get(ctx context.Context, id int64) (*domain.User, error) {
-	user := ctx.Value(config.UserContextKey).(*domain.User)
-	if id == user.ID {
+	user, ok := ctx.Value(config.UserContextKey).(*domain.User)
+	if ok && user != nil && id == user.ID {
 		return user, nil
 	}
 
