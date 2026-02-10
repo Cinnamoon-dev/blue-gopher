@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
@@ -25,6 +26,11 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 		claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
 			handlers.RespondError(w, err)
+			return
+		}
+
+		if claims.Exp.Before(time.Now()) {
+			handlers.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Token expired"})
 			return
 		}
 
