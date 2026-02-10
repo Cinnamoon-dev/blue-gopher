@@ -5,6 +5,7 @@ import "os"
 type Env struct {
 	Port   string
 	JwtKey string
+	DbUrl  string
 }
 
 func NewEnv() Env {
@@ -18,8 +19,14 @@ func NewEnv() Env {
 		key = "d0699dddcf3e6896ff556dc156a6d65931a855b327822dc12ea5f67350125a45"
 	}
 
+	dbUrl := os.Getenv("DB_URL")
+	if dbUrl == "" {
+		dbUrl = "../storage.db"
+	}
+
 	return Env{
 		Port:   port,
 		JwtKey: key,
+		DbUrl:  dbUrl,
 	}
 }
