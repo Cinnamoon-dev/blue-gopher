@@ -21,7 +21,7 @@ func NewEnv() Env {
 
 	dbUrl := os.Getenv("DB_URL")
 	if dbUrl == "" {
-		dbUrl = "../storage.db"
+		dbUrl = "./storage.db"
 	}
 
 	return Env{

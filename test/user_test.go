@@ -15,7 +15,7 @@ import (
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	db, err := sql.Open("sqlite3", "../test.db")
+	db, err := sql.Open("sqlite", "../test.db")
 	if err != nil {
 		log.Fatalf("could not connect %v", err)
 	}
@@ -41,9 +41,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	os.Exit(code)
 }
-
-// Vou fazer os testes usando os handlers
-// Vou fazer um for com cada caso dos métodos de handler
 
 // Create User
 // Create user with a valid email, password and role

@@ -1,0 +1,8 @@
+services:
+  blue-gopher:
+    container_name: blue-gopher
+    build:
+      dockerfile: ./Dockerfile
+      target: runner
+    ports:
+      - 3001:3001

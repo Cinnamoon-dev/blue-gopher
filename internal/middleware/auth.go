@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
@@ -15,15 +16,28 @@ import (
 func Auth(controller string, repo repositories.UserRepository, next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		token := r.Header.Get("Bearer")
+		token := r.Header.Get("Authorization")
 		if token == "" {
 			handlers.RespondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Not Authenticated"})
 			return
 		}
 
+		tokenValues := strings.Split(token, " ")
+		if len(tokenValues) != 2 {
+			handlers.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid Token"})
+			return
+		}
+
+		tokenHash := tokenValues[1]
+		tokenType := tokenValues[0]
+		if tokenType != "Bearer" {
+			handlers.RespondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid Token"})
+			return
+		}
+
 		authService := services.NewAuthService()
 		env := config.NewEnv()
-		claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
+		claims, err := authService.DecodeToken(tokenHash, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
 			handlers.RespondError(w, err)
 			return

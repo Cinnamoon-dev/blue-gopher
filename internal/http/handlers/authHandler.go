@@ -54,7 +54,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authService := services.NewAuthService()
-	if authService.VerifyPassword(request.Password, user.Password) {
+	if !authService.VerifyPassword(request.Password, user.Password) {
 		RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Wrong Password"})
 		return
 	}
