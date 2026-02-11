@@ -22,6 +22,13 @@ type UserRequest struct {
 	RoleID   int64  `json:"role_id"`
 }
 
+type UserResponse struct {
+	ID       int64  `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	RoleID   int64  `json:"role_id"`
+}
+
 func NewUserHandler(svc services.UserService) UserHandler {
 	return UserHandler{Svc: svc}
 }
@@ -52,7 +59,17 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, users)
+	usersResponse := make([]UserResponse, 0, len(users))
+	for _, user := range users {
+		usersResponse = append(usersResponse, UserResponse{
+			ID:       user.ID,
+			Email:    user.Email,
+			Password: user.Password,
+			RoleID:   user.RoleID,
+		})
+	}
+
+	RespondJSON(w, http.StatusOK, usersResponse)
 }
 
 func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +86,14 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, user)
+	userResponse := &UserResponse{
+		ID:       user.ID,
+		Email:    user.Email,
+		Password: user.Password,
+		RoleID:   user.RoleID,
+	}
+
+	RespondJSON(w, http.StatusOK, userResponse)
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
