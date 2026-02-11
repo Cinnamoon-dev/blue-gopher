@@ -11,20 +11,20 @@ import (
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
 	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func main() {
 	env := config.NewEnv()
 	mux := http.NewServeMux()
-	db, err := sql.Open("sqlite3", env.DbUrl)
+	db, err := sql.Open("sqlite", env.DbUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	database.CreateTables("../internal/database/tables.sql", db)
-	database.Populate("../internal/database/rules.sql", db)
+	database.CreateTables("./internal/database/tables.sql", db)
+	database.Populate("./internal/database/rules.sql", db)
 
 	roleRepository := repositories.NewRoleRepository(db)
 
