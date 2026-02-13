@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS examples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    cnpj TEXT NOT NULL,
+
+    FOREIGN KEY(user_id) REFERENCES usuarios(id)
+) STRICT;
