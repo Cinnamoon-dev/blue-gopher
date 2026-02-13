@@ -1,11 +1,15 @@
 package config
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+)
 
 type Env struct {
-	Port   string
-	JwtKey string
-	DbUrl  string
+	Port          string
+	JwtKey        string
+	DbUrl         string
+	MigrationsUrl string
 }
 
 func NewEnv() Env {
@@ -19,14 +23,28 @@ func NewEnv() Env {
 		key = "d0699dddcf3e6896ff556dc156a6d65931a855b327822dc12ea5f67350125a45"
 	}
 
-	dbUrl := os.Getenv("DB_URL")
-	if dbUrl == "" {
-		dbUrl = "./storage.db"
+	// Takes the path to the binary executable
+	// So the binary needs to run in the root of the project
+	// Or at least in this specific folder organization
+	// In case the environment variables are not declared
+	exePath, err := os.Executable()
+	if err != nil {
+		panic(err)
 	}
 
+	dir := filepath.Dir(exePath)
+
+	dbUrl := os.Getenv("DB_URL")
+	if dbUrl == "" {
+		dbUrl = dir + "/storage.db"
+	}
+
+	migrationsUrl := "file://" + dir + "/internal/database/migrations"
+
 	return Env{
-		Port:   port,
-		JwtKey: key,
-		DbUrl:  dbUrl,
+		Port:          port,
+		JwtKey:        key,
+		DbUrl:         dbUrl,
+		MigrationsUrl: migrationsUrl,
 	}
 }

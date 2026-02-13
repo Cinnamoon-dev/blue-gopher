@@ -25,6 +25,7 @@ func main() {
 
 	database.CreateTables("./internal/database/tables.sql", db)
 	database.Populate("./internal/database/rules.sql", db)
+	database.RunAllMigrations(db)
 
 	roleRepository := repositories.NewRoleRepository(db)
 
