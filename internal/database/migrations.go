@@ -12,28 +12,28 @@ import (
 
 func RunAllMigrations(db *sql.DB) {
 	env := config.NewEnv()
-	m, err := migrate.New(env.MigrationsUrl, env.DbUrl)
+	m, err := migrate.New(env.MigrationsUrl, "sqlite3://"+env.DbUrl)
 	if err != nil {
 		panic(err)
 	}
 	defer m.Close()
 
 	err = m.Up()
-	if err != nil {
+	if err != nil && err.Error() != "no change" {
 		panic(err)
 	}
 }
 
 func UndoAllMigrations(db *sql.DB) {
 	env := config.NewEnv()
-	m, err := migrate.New(env.MigrationsUrl, env.DbUrl)
+	m, err := migrate.New(env.MigrationsUrl, "sqlite3://"+env.DbUrl)
 	if err != nil {
 		panic(err)
 	}
 	defer m.Close()
 
 	err = m.Down()
-	if err != nil {
+	if err != nil && err.Error() != "no change" {
 		panic(err)
 	}
 }
