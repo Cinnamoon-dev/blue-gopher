@@ -12,13 +12,15 @@ type statusRecorder struct {
 }
 
 func (r *statusRecorder) WriteHeader(status int) {
-	r.Status = status
-	r.ResponseWriter.WriteHeader(status)
+	if r.Status == 0 {
+		r.Status = status
+		r.ResponseWriter.WriteHeader(status)
+	}
 }
 
 func Logging(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		recorder := &statusRecorder{ResponseWriter: w, Status: 200}
+		recorder := &statusRecorder{ResponseWriter: w, Status: 0}
 
 		start := time.Now()
 		next.ServeHTTP(recorder, r)
