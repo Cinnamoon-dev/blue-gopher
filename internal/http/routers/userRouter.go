@@ -5,6 +5,7 @@ import (
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/middleware"
+	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 )
 
 type UserRouter struct {
@@ -17,7 +18,7 @@ func NewUserRouter(userHandler handlers.UserHandler) UserRouter {
 
 // Expected URL: /user
 func (ro *UserRouter) BaseRoutes() http.HandlerFunc {
-	return middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet: // List all users
 			ro.UserHandler.GetAllUsers(w, r)
@@ -26,12 +27,16 @@ func (ro *UserRouter) BaseRoutes() http.HandlerFunc {
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
-	}))
+	})
+
+	timeoutRouter := middleware.Timeout(config.DefaultTimeout, router)
+	loggedTimeoutRouter := middleware.Logging(timeoutRouter)
+	return loggedTimeoutRouter
 }
 
 // Expected URL: /user/{id}
 func (ro *UserRouter) IDRoutes() http.HandlerFunc {
-	return middleware.Logging(middleware.Auth("user", ro.UserHandler.Svc.UserRepo, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet: // Get one user with id
 			ro.UserHandler.GetOneUser(w, r)
@@ -42,5 +47,10 @@ func (ro *UserRouter) IDRoutes() http.HandlerFunc {
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
-	})))
+	})
+
+	authRouter := middleware.Auth("user", ro.UserHandler.Svc.UserRepo, router)
+	timeoutAuthRouter := middleware.Timeout(config.DefaultTimeout, authRouter)
+	loggedTimeoutAuthRouter := middleware.Logging(timeoutAuthRouter)
+	return loggedTimeoutAuthRouter
 }
