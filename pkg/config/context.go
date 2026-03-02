@@ -1,6 +1,11 @@
 package config
 
+import "time"
+
 type ContextKey string
 
-// UserContextKey is the context key for storing a *domain.User in request context.
+// Context key for storing a *domain.User in request context.
 const UserContextKey = ContextKey("user")
+
+// Default time.Duration for request timeout
+const DefaultTimeout = 5 * time.Second

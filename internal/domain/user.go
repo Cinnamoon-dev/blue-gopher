@@ -14,6 +14,27 @@ type User struct {
 	RoleID   int64
 }
 
+func NewUser(id int64, email string, password string, roleID int64) (*User, error) {
+	user := &User{
+		ID:       id,
+		Email:    email,
+		Password: password,
+		RoleID:   roleID,
+	}
+
+	err := user.ValidateEmail()
+	if err != nil {
+		return nil, err
+	}
+
+	err = user.ValidatePassword()
+	if err != nil {
+		return nil, err
+	}
+
+	return user, err
+}
+
 func (u *User) ValidateEmail() error {
 	email := u.Email
 	email = strings.TrimSpace(email)

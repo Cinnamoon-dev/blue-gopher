@@ -102,24 +102,13 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&newUser)
 	newUser.Email = strings.TrimSpace(newUser.Email)
 
-	user := domain.User{
-		ID:       0,
-		Email:    newUser.Email,
-		Password: newUser.Password,
-		RoleID:   newUser.RoleID,
-	}
-
-	if err := user.ValidateEmail(); err != nil {
+	user, err := domain.NewUser(0, newUser.Email, newUser.Password, newUser.RoleID)
+	if err != nil {
 		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
 		return
 	}
 
-	if err := user.ValidatePassword(); err != nil {
-		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
-		return
-	}
-
-	id, err := h.Svc.Create(ctx, user)
+	id, err := h.Svc.Create(ctx, *user)
 	if err != nil {
 		RespondError(w, err)
 		return
@@ -142,24 +131,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := domain.User{
-		ID:       0,
-		Email:    fields.Email,
-		Password: fields.Password,
-		RoleID:   fields.RoleID,
-	}
-
-	if err := user.ValidateEmail(); err != nil {
-		RespondError(w, err)
+	user, err := domain.NewUser(0, fields.Email, fields.Password, fields.RoleID)
+	if err != nil {
+		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
 		return
 	}
 
-	if err := user.ValidatePassword(); err != nil {
-		RespondError(w, err)
-		return
-	}
-
-	if err := h.Svc.Update(ctx, id, user); err != nil {
+	if err := h.Svc.Update(ctx, id, *user); err != nil {
 		RespondError(w, err)
 		return
 	}

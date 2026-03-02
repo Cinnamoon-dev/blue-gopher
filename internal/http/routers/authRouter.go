@@ -17,7 +17,7 @@ func NewAuthRouter(authHandler handlers.AuthHandler) AuthRouter {
 
 // Expected URL: /auth
 func (ro *AuthRouter) BaseRoutes() http.HandlerFunc {
-	return middleware.Logging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			ro.AuthHandler.Login(w, r)
@@ -26,5 +26,8 @@ func (ro *AuthRouter) BaseRoutes() http.HandlerFunc {
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		}
-	}))
+	})
+
+	loggedRouter := middleware.Logging(router)
+	return loggedRouter
 }
