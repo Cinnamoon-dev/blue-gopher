@@ -22,6 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	db.Exec("PRAGMA journal_mode=WAL")
 
 	database.CreateTables("./internal/database/tables.sql", db)
 	database.Populate("./internal/database/rules.sql", db)
@@ -37,10 +38,14 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userRepository)
 	authRouter := routers.NewAuthRouter(authHandler)
 
+	orderRouter := routers.NewOrderRouter(db)
+
 	mux.Handle("/user", userRouter.BaseRoutes())
 	mux.Handle("/user/", userRouter.IDRoutes())
 
 	mux.Handle("/auth", authRouter.BaseRoutes())
+
+	mux.Handle("/order", orderRouter.BaseRoutes())
 
 	log.Printf("Listening on port %s\n", env.Port)
 	log.Fatal(http.ListenAndServe(":"+env.Port, mux))
