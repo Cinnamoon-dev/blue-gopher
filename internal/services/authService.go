@@ -16,10 +16,35 @@ func NewAuthService() AuthService {
 	return AuthService{}
 }
 
-type Claims struct {
+type AuthClaims struct {
 	Sub int64     `json:"sub"`
 	Exp time.Time `json:"exp"`
 	jwt.RegisteredClaims
+}
+
+type MailClaims struct {
+	Email string `json:"email"`
+	jwt.RegisteredClaims
+}
+
+func DecodeToken[T jwt.Claims](tokenString string, method jwt.SigningMethod, key []byte, claims T) (T, error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
+		if token.Method.Alg() != method.Alg() {
+			return claims, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: fmt.Sprintf("Invalid algorithm: %s", token.Method.Alg())}
+		}
+
+		return key, nil
+	})
+
+	if err != nil {
+		return claims, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()}
+	}
+
+	if claims, ok := token.Claims.(T); ok {
+		return claims, nil
+	}
+
+	return claims, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: "unknown claims type, cannot proceed"}
 }
 
 func (s *AuthService) CreateToken(claims jwt.Claims, method jwt.SigningMethod, key []byte) (string, error) {
@@ -33,24 +58,12 @@ func (s *AuthService) CreateToken(claims jwt.Claims, method jwt.SigningMethod, k
 	return tokenString, nil
 }
 
-func (s *AuthService) DecodeToken(tokenString string, method jwt.SigningMethod, key []byte) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
-		if token.Method.Alg() != method.Alg() {
-			return nil, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: fmt.Sprintf("Invalid algorithm: %s", token.Method.Alg())}
-		}
+func (s *AuthService) DecodeAuthToken(tokenString string, method jwt.SigningMethod, key []byte) (*AuthClaims, error) {
+	return DecodeToken(tokenString, method, key, &AuthClaims{})
+}
 
-		return key, nil
-	})
-
-	if err != nil {
-		return nil, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()}
-	}
-
-	if claims, ok := token.Claims.(*Claims); ok {
-		return claims, nil
-	}
-
-	return nil, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: "unknown claims type, cannot proceed"}
+func (s *AuthService) DecodeMailToken(tokenString string, method jwt.SigningMethod, key []byte) (*MailClaims, error) {
+	return DecodeToken(tokenString, method, key, &MailClaims{})
 }
 
 func (s *AuthService) Hash(text string) (string, error) {
