@@ -98,7 +98,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Bearer")
 	env := config.NewEnv()
 
-	claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
+	claims, err := authService.DecodeAuthToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 	if err != nil {
 		RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
 		return

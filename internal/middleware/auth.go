@@ -37,7 +37,7 @@ func Auth(controller string, repo repositories.UserRepository, next http.Handler
 
 		authService := services.NewAuthService()
 		env := config.NewEnv()
-		claims, err := authService.DecodeToken(tokenHash, jwt.SigningMethodHS256, []byte(env.JwtKey))
+		claims, err := authService.DecodeAuthToken(tokenHash, jwt.SigningMethodHS256, []byte(env.JwtKey))
 		if err != nil {
 			handlers.RespondError(w, err)
 			return
