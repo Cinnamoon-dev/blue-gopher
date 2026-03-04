@@ -3,7 +3,7 @@ package domain
 import (
 	"errors"
 	"fmt"
-	"regexp"
+	"net/mail"
 	"strings"
 )
 
@@ -43,14 +43,11 @@ func (u *User) ValidateEmail() error {
 		return errors.New("Validate email: email is required")
 	}
 
-	emailRegex := `^[a-zA-Z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`
-	re := regexp.MustCompile(emailRegex)
-
-	if re.MatchString(email) {
-		return nil
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("Validate email: invalid email %s", email)
 	}
 
-	return fmt.Errorf("Validate email: invalid email %s", email)
+	return nil
 }
 
 func (u *User) ValidatePassword() error {
