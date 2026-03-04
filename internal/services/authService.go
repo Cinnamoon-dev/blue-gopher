@@ -53,8 +53,8 @@ func (s *AuthService) DecodeToken(tokenString string, method jwt.SigningMethod, 
 	return nil, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: "unknown claims type, cannot proceed"}
 }
 
-func (s *AuthService) HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func (s *AuthService) Hash(text string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(text), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +62,7 @@ func (s *AuthService) HashPassword(password string) (string, error) {
 	return string(bytes), nil
 }
 
-func (s *AuthService) VerifyPassword(password string, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+func (s *AuthService) VerifyHash(text string, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(text))
 	return err == nil
 }
