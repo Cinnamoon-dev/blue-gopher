@@ -8,18 +8,20 @@ import (
 )
 
 type User struct {
-	ID       int64
-	Email    string
-	Password string
-	RoleID   int64
+	ID         int64
+	Email      string
+	Password   string
+	IsVerified bool
+	RoleID     int64
 }
 
-func NewUser(id int64, email string, password string, roleID int64) (*User, error) {
+func NewUser(id int64, email string, password string, IsVerified bool, roleID int64) (*User, error) {
 	user := &User{
-		ID:       id,
-		Email:    email,
-		Password: password,
-		RoleID:   roleID,
+		ID:         id,
+		Email:      email,
+		Password:   password,
+		IsVerified: IsVerified,
+		RoleID:     roleID,
 	}
 
 	err := user.ValidateEmail()

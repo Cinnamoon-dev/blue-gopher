@@ -16,17 +16,25 @@ type UserHandler struct {
 	Svc services.UserService
 }
 
-type UserRequest struct {
+type CreateUserRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	RoleID   int64  `json:"role_id"`
 }
 
+type EditUserRequest struct {
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	IsVerified bool   `json:"is_verified"`
+	RoleID     int64  `json:"role_id"`
+}
+
 type UserResponse struct {
-	ID       int64  `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	RoleID   int64  `json:"role_id"`
+	ID         int64  `json:"id"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	IsVerified bool   `json:"is_verified"`
+	RoleID     int64  `json:"role_id"`
 }
 
 func NewUserHandler(svc services.UserService) UserHandler {
@@ -62,10 +70,11 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	usersResponse := make([]UserResponse, 0, len(users))
 	for _, user := range users {
 		usersResponse = append(usersResponse, UserResponse{
-			ID:       user.ID,
-			Email:    user.Email,
-			Password: user.Password,
-			RoleID:   user.RoleID,
+			ID:         user.ID,
+			Email:      user.Email,
+			Password:   user.Password,
+			IsVerified: user.IsVerified,
+			RoleID:     user.RoleID,
 		})
 	}
 
@@ -87,10 +96,11 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userResponse := &UserResponse{
-		ID:       user.ID,
-		Email:    user.Email,
-		Password: user.Password,
-		RoleID:   user.RoleID,
+		ID:         user.ID,
+		Email:      user.Email,
+		Password:   user.Password,
+		IsVerified: user.IsVerified,
+		RoleID:     user.RoleID,
 	}
 
 	RespondJSON(w, http.StatusOK, userResponse)
@@ -98,11 +108,11 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var newUser UserRequest
+	var newUser CreateUserRequest
 	json.NewDecoder(r.Body).Decode(&newUser)
 	newUser.Email = strings.TrimSpace(newUser.Email)
 
-	user, err := domain.NewUser(0, newUser.Email, newUser.Password, newUser.RoleID)
+	user, err := domain.NewUser(0, newUser.Email, newUser.Password, false, newUser.RoleID)
 	if err != nil {
 		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
 		return
@@ -125,13 +135,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var fields UserRequest
+	var fields EditUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&fields); err != nil {
 		RespondError(w, err)
 		return
 	}
 
-	user, err := domain.NewUser(0, fields.Email, fields.Password, fields.RoleID)
+	user, err := domain.NewUser(0, fields.Email, fields.Password, fields.IsVerified, fields.RoleID)
 	if err != nil {
 		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
 		return
