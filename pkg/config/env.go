@@ -10,6 +10,7 @@ type Env struct {
 	JwtKey        string
 	DbUrl         string
 	MigrationsUrl string
+	BackendUrl    string
 }
 
 func NewEnv() Env {
@@ -21,6 +22,11 @@ func NewEnv() Env {
 	key := os.Getenv("JWT_KEY")
 	if key == "" {
 		key = "d0699dddcf3e6896ff556dc156a6d65931a855b327822dc12ea5f67350125a45"
+	}
+
+	backendUrl := os.Getenv("BACKEND_URL")
+	if backendUrl == "" {
+		backendUrl = "http://localhost:3001"
 	}
 
 	// Takes the path to the binary executable
@@ -46,5 +52,6 @@ func NewEnv() Env {
 		JwtKey:        key,
 		DbUrl:         dbUrl,
 		MigrationsUrl: migrationsUrl,
+		BackendUrl:    backendUrl,
 	}
 }
