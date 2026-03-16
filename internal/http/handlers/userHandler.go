@@ -109,9 +109,12 @@ func (h *UserHandler) GetOneUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var newUser CreateUserRequest
-	json.NewDecoder(r.Body).Decode(&newUser)
-	newUser.Email = strings.TrimSpace(newUser.Email)
+	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
+		RespondJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
 
+	newUser.Email = strings.TrimSpace(newUser.Email)
 	user, err := domain.NewUser(0, newUser.Email, newUser.Password, false, newUser.RoleID)
 	if err != nil {
 		RespondError(w, &customerrors.HTTPError{Status: http.StatusBadRequest, Message: err.Error()})
