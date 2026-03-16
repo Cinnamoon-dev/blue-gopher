@@ -11,6 +11,8 @@ type Env struct {
 	DbUrl         string
 	MigrationsUrl string
 	BackendUrl    string
+	MailUsername  string
+	MailPassword  string
 }
 
 func NewEnv() Env {
@@ -47,11 +49,16 @@ func NewEnv() Env {
 
 	migrationsUrl := "file://" + dir + "/internal/database/migrations"
 
+	mailUsername := os.Getenv("MAIL_USERNAME")
+	mailPassword := os.Getenv("MAIL_PASSWORD")
+
 	return Env{
 		Port:          port,
 		JwtKey:        key,
 		DbUrl:         dbUrl,
 		MigrationsUrl: migrationsUrl,
 		BackendUrl:    backendUrl,
+		MailUsername:  mailUsername,
+		MailPassword:  mailPassword,
 	}
 }
