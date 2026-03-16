@@ -37,7 +37,8 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userRepository)
 	authRouter := routers.NewAuthRouter(authHandler)
 
-	mailRouter := routers.NewMailRouter(services.NewAuthService(), userService)
+	mailHandler := handlers.NewMailHandler(services.NewAuthService(), userService)
+	mailRouter := routers.NewMailRouter(mailHandler)
 
 	mux.Handle("/user", userRouter.BaseRoutes())
 	mux.Handle("/user/", userRouter.IDRoutes())
