@@ -1,6 +1,13 @@
 # Blue Gopher
 A simple REST API made using `net/http` and `sqlite3`.
 
+## Running the project
+Build the project from the root folder.
+```bash
+go build -o blue-gopher ./cmd 
+./blue-gopher
+```
+
 ## Architecture
 The project uses Layered Architecture with a clear responsability separation and business logic isolation.
 

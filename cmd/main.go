@@ -37,10 +37,15 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userRepository)
 	authRouter := routers.NewAuthRouter(authHandler)
 
+	mailHandler := handlers.NewMailHandler(services.NewAuthService(), userService)
+	mailRouter := routers.NewMailRouter(mailHandler)
+
 	mux.Handle("/user", userRouter.BaseRoutes())
 	mux.Handle("/user/", userRouter.IDRoutes())
 
 	mux.Handle("/auth", authRouter.BaseRoutes())
+
+	mux.Handle("/mail/", mailRouter.BaseRoutes())
 
 	log.Printf("Listening on port %s\n", env.Port)
 	log.Fatal(http.ListenAndServe(":"+env.Port, mux))

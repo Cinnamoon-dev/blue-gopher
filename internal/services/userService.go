@@ -49,7 +49,7 @@ func (s *UserService) Create(ctx context.Context, newUser domain.User) (int64, e
 	}
 
 	authService := NewAuthService()
-	newUser.Password, err = authService.HashPassword(newUser.Password)
+	newUser.Password, err = authService.Hash(newUser.Password)
 	if err != nil {
 		return 0, &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: fmt.Sprintf("Password hash: %s", err.Error())}
 	}
@@ -63,7 +63,7 @@ func (s *UserService) Update(ctx context.Context, id int64, fields domain.User) 
 	}
 
 	authService := NewAuthService()
-	hashPassword, err := authService.HashPassword(fields.Password)
+	hashPassword, err := authService.Hash(fields.Password)
 	if err != nil {
 		return &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: fmt.Sprintf("Password hash: %s", err.Error())}
 	}

@@ -3,7 +3,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role_id INTEGER NOT NULL
+    role_id INTEGER NOT NULL,
+    is_verified INTEGER, -- boolean
+
+    FOREIGN KEY(role_id) REFERENCES roles(id)
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS controllers (

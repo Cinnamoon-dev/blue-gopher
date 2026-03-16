@@ -57,9 +57,9 @@ func (r *UserRepository) GetPermission(ctx context.Context, id int64, action str
 }
 
 func (r *UserRepository) GetAll(ctx context.Context) ([]domain.User, error) {
-	rows, err := r.db.Query("SELECT id, email, password, role_id FROM usuarios ORDER BY id;")
+	rows, err := r.db.Query("SELECT id, email, password, is_verified, role_id FROM usuarios ORDER BY id;")
 	if err != nil {
-		return nil, &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
+		return nil, &customerrors.HTTPError{Message: "get rows: " + err.Error(), Status: http.StatusInternalServerError}
 	}
 	defer rows.Close()
 
@@ -67,9 +67,9 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]domain.User, error) {
 	var user domain.User
 
 	for rows.Next() {
-		err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID)
+		err := rows.Scan(&user.ID, &user.Email, &user.Password, &user.IsVerified, &user.RoleID)
 		if err != nil {
-			return nil, &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
+			return nil, &customerrors.HTTPError{Message: "write user: " + err.Error(), Status: http.StatusInternalServerError}
 		}
 
 		data = append(data, user)
@@ -81,8 +81,8 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]domain.User, error) {
 func (r *UserRepository) Get(ctx context.Context, id int64) (*domain.User, error) {
 	var user domain.User
 
-	row := r.db.QueryRow("SELECT id, email, password, role_id FROM usuarios WHERE id = ? ORDER BY id", id)
-	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID); err != nil {
+	row := r.db.QueryRow("SELECT id, email, password, is_verified, role_id FROM usuarios WHERE id = ? ORDER BY id", id)
+	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.IsVerified, &user.RoleID); err != nil {
 		return nil, &customerrors.HTTPError{Message: fmt.Sprintf("User %d not found", id), Status: http.StatusNotFound}
 	}
 
@@ -91,8 +91,8 @@ func (r *UserRepository) Get(ctx context.Context, id int64) (*domain.User, error
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
-	row := r.db.QueryRow("SELECT id, email, password, role_id FROM usuarios WHERE email = ? ORDER BY id LIMIT 1", email)
-	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.RoleID); err != nil {
+	row := r.db.QueryRow("SELECT id, email, password, is_verified, role_id FROM usuarios WHERE email = ? ORDER BY id LIMIT 1", email)
+	if err := row.Scan(&user.ID, &user.Email, &user.Password, &user.IsVerified, &user.RoleID); err != nil {
 		return nil, &customerrors.HTTPError{Status: http.StatusNotFound, Message: fmt.Sprintf("User %s not found", email)}
 	}
 
@@ -100,7 +100,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 }
 
 func (r *UserRepository) Create(ctx context.Context, user domain.User) (int64, error) {
-	result, err := r.db.Exec("INSERT INTO usuarios(email, password, role_id) VALUES (?, ?, ?)", user.Email, user.Password, user.RoleID)
+	result, err := r.db.Exec("INSERT INTO usuarios(email, password, is_verified, role_id) VALUES (?, ?, ?)", user.Email, user.Password, user.IsVerified, user.RoleID)
 	if err != nil {
 		return 0, &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
 	}
@@ -114,7 +114,15 @@ func (r *UserRepository) Create(ctx context.Context, user domain.User) (int64, e
 }
 
 func (r *UserRepository) Update(ctx context.Context, id int64, user domain.User) error {
-	_, err := r.db.Exec("UPDATE usuarios SET email = ?, password = ?, role_id = ? WHERE id = ?", user.Email, user.Password, user.RoleID, id)
+	//output := ""
+	//verify := user.IsVerified
+	//if verify != nil {
+
+	//} else {
+	//	output = verify.Format("%Y-%m-%d %H")
+	//}
+
+	_, err := r.db.Exec("UPDATE usuarios SET email = ?, password = ?, is_verified = ?, role_id = ? WHERE id = ?", user.Email, user.Password, user.IsVerified, user.RoleID, id)
 	if err != nil {
 		return &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
 	}
