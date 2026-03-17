@@ -4,7 +4,7 @@ A simple REST API made using `net/http` and `sqlite3`.
 ## Running the project
 Build the project from the root folder.
 ```bash
-go build -o blue-gopher ./cmd 
+go build -o blue-gopher ./cmd/api 
 ./blue-gopher
 ```
 
