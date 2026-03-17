@@ -15,12 +15,14 @@ import (
 type MailHandler struct {
 	AuthService services.AuthService
 	UserService services.UserService
+	MailService services.MailService
 }
 
-func NewMailHandler(authService services.AuthService, userService services.UserService) MailHandler {
+func NewMailHandler(authService services.AuthService, userService services.UserService, mailService services.MailService) MailHandler {
 	return MailHandler{
 		AuthService: authService,
 		UserService: userService,
+		MailService: mailService,
 	}
 }
 

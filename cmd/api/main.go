@@ -34,10 +34,12 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 	userRouter := routers.NewUserRouter(userHandler)
 
+	authService := services.NewAuthService()
 	authHandler := handlers.NewAuthHandler(userRepository)
 	authRouter := routers.NewAuthRouter(authHandler)
 
-	mailHandler := handlers.NewMailHandler(services.NewAuthService(), userService)
+	mailService := services.NewMailService()
+	mailHandler := handlers.NewMailHandler(authService, userService, mailService)
 	mailRouter := routers.NewMailRouter(mailHandler)
 
 	mux.Handle("/user", userRouter.BaseRoutes())
