@@ -3,8 +3,8 @@ package rabbitmq
 import amqp "github.com/rabbitmq/amqp091-go"
 
 type Connection struct {
-	Conn    *amqp.Connection
-	Channel *amqp.Channel
+	Conn *amqp.Connection
+	Ch   *amqp.Channel
 }
 
 func NewConnection(url string) (*Connection, error) {
@@ -19,14 +19,14 @@ func NewConnection(url string) (*Connection, error) {
 	}
 
 	return &Connection{
-		Conn:    conn,
-		Channel: ch,
+		Conn: conn,
+		Ch:   ch,
 	}, nil
 }
 
 func (c *Connection) Close() {
-	if c.Channel != nil {
-		c.Channel.Close()
+	if c.Ch != nil {
+		c.Ch.Close()
 	}
 
 	if c.Conn != nil {
