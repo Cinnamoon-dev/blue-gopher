@@ -13,6 +13,7 @@ type Env struct {
 	BackendUrl    string
 	MailUsername  string
 	MailPassword  string
+	RabbitMQUrl   string
 }
 
 func NewEnv() Env {
@@ -52,6 +53,11 @@ func NewEnv() Env {
 	mailUsername := os.Getenv("MAIL_USERNAME")
 	mailPassword := os.Getenv("MAIL_PASSWORD")
 
+	rabbitMQUrl := os.Getenv("RABBITMQ_URL")
+	if rabbitMQUrl == "" {
+		rabbitMQUrl = "amqp://guest:guest@localhost:5672/"
+	}
+
 	return Env{
 		Port:          port,
 		JwtKey:        key,
@@ -60,5 +66,6 @@ func NewEnv() Env {
 		BackendUrl:    backendUrl,
 		MailUsername:  mailUsername,
 		MailPassword:  mailPassword,
+		RabbitMQUrl:   rabbitMQUrl,
 	}
 }
