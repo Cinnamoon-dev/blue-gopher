@@ -59,11 +59,18 @@ func main() {
 			}, jwt.SigningMethodHS256, []byte(env.JwtKey))
 			link := env.BackendUrl + "/mail/" + emailToken
 
-			mailService.SendEmail(event.Email, "Email Verification", link)
+			err = mailService.SendEmail(event.Email, "Email Verification", link)
+			if err != nil {
+				log.Printf("Failed to send mail: %s", err)
+				continue
+			}
+
+			log.Printf("Mail sent to %s!", event.Email)
 			d.Ack(false)
 		}
 	}()
 
+	log.Print("Worker running...")
 	var forever chan struct{}
 	<-forever
 }
