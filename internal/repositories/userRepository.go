@@ -100,7 +100,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 }
 
 func (r *UserRepository) Create(ctx context.Context, user domain.User) (int64, error) {
-	result, err := r.db.Exec("INSERT INTO usuarios(email, password, is_verified, role_id) VALUES (?, ?, ?)", user.Email, user.Password, user.IsVerified, user.RoleID)
+	result, err := r.db.Exec("INSERT INTO usuarios(email, password, is_verified, role_id) VALUES (?, ?, ?, ?)", user.Email, user.Password, user.IsVerified, user.RoleID)
 	if err != nil {
 		return 0, &customerrors.HTTPError{Message: "Database error", Status: http.StatusInternalServerError}
 	}
