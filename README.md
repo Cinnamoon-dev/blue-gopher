@@ -13,6 +13,9 @@ The project uses Layered Architecture with a clear responsability separation and
 
 ```
 ├── cmd
+│   ├── api
+│   └── mailworker
+├── docs
 ├── internal
 │   ├── customerrors
 │   ├── database
@@ -21,6 +24,9 @@ The project uses Layered Architecture with a clear responsability separation and
 │   ├── http
 │   │   ├── handlers
 │   │   └── routers
+│   ├── messaging
+│   │   ├── events
+│   │   └── rabbitmq
 │   ├── middleware
 │   ├── repositories
 │   └── services
@@ -30,11 +36,12 @@ The project uses Layered Architecture with a clear responsability separation and
 ```
 
 ### `cmd/`
-Application entrypoint. It should contain:
+Application entrypoint. It contains:
 - `main.go`
 - Server initialization
 - Dependency setup
 - Manual Dependency Injection
+- RabbitMQ workers
 
 ### `internal/`
 Private Application code (can't be imported by other modules).
@@ -64,6 +71,9 @@ Transport layer
 - Route registration
 - Mapping endpoint to handlers
 - Middleware calls
+
+### `internal/rabbitmq`
+RabbitMQ middleware and events
 
 ### `internal/middleware/`
 HTTP middleware such as:
