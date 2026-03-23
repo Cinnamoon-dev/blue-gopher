@@ -1,3 +1,6 @@
+networks:
+  blue-network:
+
 services:
   blue-gopher:
     container_name: blue-gopher
@@ -6,3 +9,14 @@ services:
       target: runner
     ports:
       - 3001:3001
+    networks:
+      - blue-network
+  
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:4.2.4-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - blue-network
