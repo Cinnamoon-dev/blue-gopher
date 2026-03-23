@@ -13,8 +13,10 @@ import (
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/database"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/http/handlers"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/messaging/rabbitmq"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/services"
+	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 	_ "modernc.org/sqlite"
 )
 
@@ -23,6 +25,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	env := config.NewEnv()
 	db, err := sql.Open("sqlite", "../test.db")
 	if err != nil {
 		log.Fatalf("could not connect %v", err)
@@ -32,9 +35,12 @@ func TestMain(m *testing.M) {
 	database.CreateTables("../internal/database/tables.sql", db)
 	database.Populate("../internal/database/rules.sql", db)
 
+	queueConn, err := rabbitmq.NewConnection(env.RabbitMQUrl)
+	publisher := rabbitmq.NewRabbitPublisher(*queueConn)
+
 	roleRepository := repositories.NewRoleRepository(db)
 	userRepository := repositories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository, roleRepository)
+	userService := services.NewUserService(userRepository, roleRepository, *publisher)
 	h := handlers.NewUserHandler(userService)
 	userHandler = &h
 

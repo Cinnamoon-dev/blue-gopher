@@ -3,21 +3,34 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/Cinnamoon-dev/blue-gopher/internal/customerrors"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/domain"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/messaging/events"
+	"github.com/Cinnamoon-dev/blue-gopher/internal/messaging/rabbitmq"
 	"github.com/Cinnamoon-dev/blue-gopher/internal/repositories"
 	"github.com/Cinnamoon-dev/blue-gopher/pkg/config"
 )
 
 type UserService struct {
-	UserRepo repositories.UserRepository
-	RoleRepo repositories.RoleRepository
+	UserRepo  repositories.UserRepository
+	RoleRepo  repositories.RoleRepository
+	Publisher rabbitmq.RabbitPublisher
 }
 
-func NewUserService(userRepo repositories.UserRepository, roleRepo repositories.RoleRepository) UserService {
-	return UserService{UserRepo: userRepo, RoleRepo: roleRepo}
+func NewUserService(
+	userRepo repositories.UserRepository,
+	roleRepo repositories.RoleRepository,
+	publisher rabbitmq.RabbitPublisher,
+) UserService {
+	return UserService{
+		UserRepo:  userRepo,
+		RoleRepo:  roleRepo,
+		Publisher: publisher,
+	}
 }
 
 func (s *UserService) GetAll(ctx context.Context) ([]domain.User, error) {
@@ -49,12 +62,31 @@ func (s *UserService) Create(ctx context.Context, newUser domain.User) (int64, e
 	}
 
 	authService := NewAuthService()
-	newUser.Password, err = authService.HashPassword(newUser.Password)
+	newUser.Password, err = authService.Hash(newUser.Password)
 	if err != nil {
 		return 0, &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: fmt.Sprintf("Password hash: %s", err.Error())}
 	}
 
-	return s.UserRepo.Create(ctx, newUser)
+	userID, err := s.UserRepo.Create(ctx, newUser)
+	if err != nil {
+		return userID, err
+	}
+
+	event := events.EmailVerificationRequested{
+		Event: events.Event{
+			ID:        "1",
+			Type:      "email.verification_requested",
+			CreatedAt: time.Now(),
+		},
+		Email: newUser.Email,
+	}
+
+	err = s.Publisher.PublishEvent("", "email", event)
+	if err != nil {
+		log.Printf("[UserService.Create] Failed at sending email.verification_requested event: %s", err)
+	}
+
+	return userID, err
 }
 
 func (s *UserService) Update(ctx context.Context, id int64, fields domain.User) error {
@@ -63,7 +95,7 @@ func (s *UserService) Update(ctx context.Context, id int64, fields domain.User) 
 	}
 
 	authService := NewAuthService()
-	hashPassword, err := authService.HashPassword(fields.Password)
+	hashPassword, err := authService.Hash(fields.Password)
 	if err != nil {
 		return &customerrors.HTTPError{Status: http.StatusInternalServerError, Message: fmt.Sprintf("Password hash: %s", err.Error())}
 	}

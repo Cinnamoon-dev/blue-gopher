@@ -54,7 +54,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	authService := services.NewAuthService()
-	if !authService.VerifyPassword(request.Password, user.Password) {
+	if !authService.VerifyHash(request.Password, user.Password) {
 		RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Wrong Password"})
 		return
 	}
@@ -98,7 +98,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Bearer")
 	env := config.NewEnv()
 
-	claims, err := authService.DecodeToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
+	claims, err := authService.DecodeAuthToken(token, jwt.SigningMethodHS256, []byte(env.JwtKey))
 	if err != nil {
 		RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Internal Server Error"})
 		return
